@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>こつめ 未来シミュレーター</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--accent1:#e8ff47;--accent2:#ff6b47;--accent3:#47c4ff;--text:#e8e8f0;--muted:#5a5a72;--card:#16161f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic New',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(232,255,71,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(232,255,71,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.container{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:40px 20px 80px}
+.header{margin-bottom:48px;animation:fadeDown .6s ease both}
+.header-label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.header h1{font-size:clamp(28px,6vw,44px);font-weight:900;line-height:1.1;letter-spacing:-.02em}
+.header h1 span{color:var(--accent1)}
+.subtitle{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.6}
+.section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:16px;animation:fadeUp .6s ease both}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;margin-bottom:16px}
+.time-display{display:flex;align-items:baseline;gap:8px;margin-bottom:20px}
+.time-number{font-family:'DM Mono',monospace;font-size:56px;font-weight:500;color:var(--accent1);line-height:1}
+.time-unit{font-size:18px;color:var(--muted)}
+.time-date{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);margin-left:auto}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--border);border-radius:99px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--accent1);cursor:pointer;box-shadow:0 0 20px rgba(232,255,71,.5)}
+.range-labels{display:flex;justify-content:space-between;margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.cards-grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:600px){.cards-grid{grid-template-columns:repeat(3,1fr)}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;animation:fadeUp .6s ease both;transition:transform .2s}
+.card:hover{transform:translateY(-2px)}
+.card-work{border-top:2px solid var(--accent1)}
+.card-money{border-top:2px solid var(--accent2)}
+.card-body{border-top:2px solid var(--accent3)}
+.card-icon{font-size:24px;margin-bottom:12px}
+.card-title{font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:16px;font-family:'DM Mono',monospace}
+.card-status{font-size:20px;font-weight:900;line-height:1.2;margin-bottom:8px;min-height:50px;display:flex;align-items:center}
+.card-work .card-status{color:var(--accent1)}
+.card-money .card-status{color:var(--accent2)}
+.card-body .card-status{color:var(--accent3)}
+.card-detail{font-size:13px;color:var(--muted);line-height:1.6;min-height:60px}
+.routine-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media(max-width:500px){.routine-grid{grid-template-columns:1fr}}
+.routine-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.routine-label{font-size:12px;color:var(--muted);flex:1}
+.routine-toggle{width:44px;height:24px;border-radius:99px;background:var(--border);cursor:pointer;position:relative;transition:background .3s;flex-shrink:0;border:none}
+.routine-toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:var(--muted);top:3px;left:3px;transition:transform .3s,background .3s}
+.routine-toggle.on{background:rgba(232,255,71,.2)}
+.routine-toggle.on::after{transform:translateX(20px);background:var(--accent1)}
+.milestone-list{list-style:none;display:flex;flex-direction:column;gap:0;position:relative;padding-left:24px}
+.milestone-list::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:1px;background:var(--border)}
+.milestone-item{position:relative;padding:14px 0;display:flex;align-items:flex-start;gap:16px;transition:opacity .4s}
+.milestone-item::before{content:'';position:absolute;left:-20px;top:20px;width:8px;height:8px;border-radius:50%;background:var(--muted);border:2px solid var(--bg);transition:background .4s,box-shadow .4s}
+.milestone-item.active::before{background:var(--accent1);box-shadow:0 0 12px rgba(232,255,71,.6)}
+.milestone-item.past::before{background:var(--accent1);opacity:.4}
+.milestone-item.future{opacity:.35}
+.milestone-month{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;padding-top:2px;min-width:70px}
+.milestone-title{font-weight:700;font-size:14px;margin-bottom:3px}
+.milestone-item.active .milestone-title{color:var(--accent1)}
+.milestone-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.message-box{background:linear-gradient(135deg,rgba(232,255,71,.05),rgba(71,196,255,.05));border:1px solid rgba(232,255,71,.2);border-radius:12px;padding:20px 24px;margin-top:16px;font-size:14px;line-height:1.8;color:var(--text);min-height:80px;transition:all .4s}
+.message-box .highlight{color:var(--accent1);font-weight:700}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="header-label">KOTSUME FUTURE SIMULATOR v1.0</div>
+<h1>今日の積み上げが<br><span>何年後を作るか</span></h1>
+<p class="subtitle">スライダーを動かして、ルーティンを継続した未来を確認する。</p>
+</div>
+<div class="section">
+<div class="section-label">▶ TIME MACHINE — スライダーを動かす</div>
+<div class="time-display">
+<div class="time-number" id="monthDisplay">0</div>
+<div class="time-unit">ヶ月後</div>
+<div class="time-date" id="dateDisplay">2026年4月</div>
+</div>
+<input type="range" id="timeSlider" min="0" max="42" value="0" step="1">
+<div class="range-labels"><span>今</span><span>6ヶ月</span><span>1年</span><span>2年</span><span>3年6ヶ月</span></div>
+</div>
+<div class="section">
+<div class="section-label">⚙ 継続するルーティンを選択</div>
+<p style="font-size:12px;color:var(--muted);margin-top:4px">ONにしたものが積み上がった前提でシミュレートします</p>
+<div class="routine-grid">
+<div class="routine-item"><span class="routine-label">📋 日次タスク記録</span><button class="routine-toggle on" data-key="obsidian" onclick="toggleRoutine(this)"></button></div>
+<div class="routine-item"><span class="routine-label">📊 週1数字整理・報告準備</span><button class="routine-toggle on" data-key="report" onclick="toggleRoutine(this)"></button></div>
+<div class="routine-item"><span class="routine-label">💪 筋トレ・ダイエット継続</span><button class="routine-toggle on" data-key="gym" onclick="toggleRoutine(this)"></button></div>
+<div class="routine-item"><span class="routine-label">💰 副業の種まき（週1）</span><button class="routine-toggle" data-key="side" onclick="toggleRoutine(this)"></button></div>
+<div class="routine-item"><span class="routine-label">🧠 スキルアップ（Excel・AI）</span><button class="routine-toggle on" data-key="skill" onclick="toggleRoutine(this)"></button></div>
+<div class="routine-item"><span class="routine-label">🎯 副本部長への月1アピール</span><button class="routine-toggle" data-key="pr" onclick="toggleRoutine(this)"></button></div>
+</div>
+</div>
+<div class="cards-grid" style="margin-bottom:16px">
+<div class="card card-work"><div class="card-icon">🏢</div><div class="card-title">CAREER</div><div class="card-status" id="careerStatus">主任</div><div class="card-detail" id="careerDetail">現在地。全商材を把握する唯一の存在として基盤構築中。</div></div>
+<div class="card card-money"><div class="card-icon">💴</div><div class="card-title">MONEY</div><div class="card-status" id="moneyStatus">現状維持</div><div class="card-detail" id="moneyDetail">ルーティンを積み上げると収入シナリオが変化します。</div></div>
+<div class="card card-body"><div class="card-icon">🔥</div><div class="card-title">BODY</div><div class="card-status" id="bodyStatus">始動期</div><div class="card-detail" id="bodyDetail">継続ルーティンがONの前提でシミュレートします。</div></div>
+</div>
+<div class="section">
+<div class="section-label">📍 MILESTONE MAP</div>
+<ul class="milestone-list" id="milestoneList"></ul>
+</div>
+<div class="message-box" id="messageBox">スライダーを動かすと、<span class="highlight">こつめさんへのメッセージ</span>が届きます。</div>
+</div>
+<script>
+const routines={obsidian:true,report:true,gym:true,side:false,skill:true,pr:false};
+const MILESTONES=[
+{month:0,label:"2026年4月",title:"現在地",desc:"主任として全商材掌握。引越立て直し完了。中間面談準備中。"},
+{month:3,label:"2026年7月",title:"中間評価の結果が出る",desc:"引越立て直し実績が評価に反映されるか分岐点。副本部長への訴求が効いてくる。"},
+{month:6,label:"2026年10月",title:"期末・昇進申請シーズン",desc:"課長昇進の申請ライン。数字で語れる実績が揃っているかが鍵。"},
+{month:9,label:"2027年1月",title:"課長昇進 or 再挑戦",desc:"昇進していれば部下マネジメント権限が拡大。評価権も手に入る。"},
+{month:18,label:"2027年10月",title:"課長2年目・副業が軌道",desc:"本業で課長として実績を積みながら、副業の収益が見え始める時期。"},
+{month:30,label:"2028年10月",title:"部長昇進射程圏内",desc:"3年以内部長の目標ライン。チーム全体の数字を動かした実績が問われる。"},
+{month:42,label:"2029年10月",title:"部長・複線収入の完成形",desc:"本業部長＋副業収入が安定し、ワークライフバランスを保ったまま年収が跳ね上がる。"}
+];
+function toggleRoutine(btn){const k=btn.dataset.key;routines[k]=!routines[k];btn.classList.toggle('on',routines[k]);update()}
+function getScore(){return Object.entries({obsidian:1,report:2,gym:1,side:2,skill:1,pr:3}).reduce((s,[k,w])=>s+(routines[k]?w:0),0)}
+function getDate(m){const d=new Date(2026,3);d.setMonth(d.getMonth()+m);return d.getFullYear()+"年"+(d.getMonth()+1)+"月"}
+function getCareer(m,s){
+if(m===0)return{status:"主任",detail:"現在地。全商材を把握する唯一の存在として基盤構築中。"};
+if(m<=6){if(routines.pr&&routines.report)return{status:"課長昇進候補",detail:"副本部長への月1アピール＋数字報告が効いている。評価者の目に届いている状態。"};if(routines.report)return{status:"主任（評価↑）",detail:"数字整理が習慣化し実績の言語化が上手くなっている。次期昇進候補として認知され始める。"};return{status:"主任",detail:"日々の業務を回している状態。副本部長への訴求がまだ弱い。"}}
+if(m<=12){if(s>=7)return{status:"課長 🎉",detail:"引越立て直し実績＋副本部長への露出戦略が実を結んだ。評価権・マネジメント範囲が拡大。"};if(s>=5)return{status:"課長昇進審査中",detail:"実績は十分だが副本部長への訴求力がやや不足。あと一押しで決まる状況。"};return{status:"主任（再挑戦）",detail:"数字の見せ方と副本部長への露出が課題。次期評価に向けて戦略を立て直す必要あり。"}}
+if(m<=24){if(s>=7)return{status:"課長（2年目）",detail:"チーム全体の数字を動かす立場に。部下育成実績が次の部長昇進の材料になり始める。"};if(s>=4)return{status:"課長",detail:"マネジメントを学びながら実績を積んでいる段階。副業の土台も少しずつ育ち始める。"};return{status:"主任 or 課長",detail:"ルーティンの継続状況によって分岐。特に副本部長への露出が昇進速度を左右する。"}}
+if(m<=36){if(s>=8)return{status:"課長→部長昇進審査",detail:"チーム数字・部下育成・副本部長との関係構築が揃い部長昇進の射程に入っている。"};if(s>=5)return{status:"課長（安定期）",detail:"課長として確立。部長を目指すにはもう一段の数字インパクトと露出戦略が必要。"};return{status:"課長",detail:"現状維持は安定しているが部長への道が遠くなっている。ルーティンの見直しを。"}}
+if(s>=8)return{status:"部長 🏆",detail:"3年以内部長という目標を達成。本業の決裁権を持ちながら副業収入も安定した理想の状態。"};
+if(s>=5)return{status:"部長昇進候補",detail:"部長は射程圏。あと1〜2期の実績で決まる。副本部長への訴求が最後の鍵。"};
+return{status:"課長（継続）",detail:"課長として安定しているが部長は遠い。ルーティンの強化が必要な状態。"}}
+function getMoney(m,s){
+if(m===0)return{status:"現状維持",detail:"主任給。ここからの積み上げで変わる。"};
+const cb=routines.report&&routines.pr?Math.floor(m/9)*3:0;
+const si=routines.side?Math.floor(m/6)*2:0;
+if(m<=6)return{status:`+${cb+si}万円/年 イメージ`,detail:routines.side?"副業の種まき期間。収益はまだ小さいが仕組みが育っている。":"昇進後の給与アップが射程に入ってくる時期。"};
+if(m<=18)return{status:`+${10+cb+si}万円/年 イメージ`,detail:`課長昇進で給与レンジが上昇。${routines.side?"副業収入が月数万円レベルになり始める。":"副業をONにすると複線収入が加わる。"}`};
+if(m<=36)return{status:`+${25+cb+si}万円/年 イメージ`,detail:routines.side?"副業が月5〜10万円規模に成長。本業昇給と合わせて複線収入が安定する。":"本業の昇給が主な収入源。副業をONにすると大きく変わる。"};
+return{status:`+${40+cb+si}万円/年 イメージ`,detail:`部長給与＋${routines.side?"副業月10万円超の安定複線収入。":"本業昇給。副業を加えるとさらに上がる。"}`}}
+function getBody(m){
+if(!routines.gym)return{status:"現状維持",detail:"筋トレ継続をONにすると体型変化のシミュレーションが見えます。"};
+if(m===0)return{status:"始動期",detail:"ルーティンが始まったばかり。最初の1ヶ月は習慣定着が最重要。"};
+if(m<=3)return{status:"変化の兆し",detail:"3ヶ月継続で体組成に変化が出始める時期。体重より見た目・感覚の変化が先に来る。"};
+if(m<=6)return{status:"体型が変わり始める",detail:"半年継続で周囲に気づかれ始める変化量。服のサイズ感が変わってくる頃。"};
+if(m<=12)return{status:"理想の体型に近づく",detail:"1年継続で自分史上ベストに近い状態。体型管理が完全に習慣化されている。"};
+if(m<=24)return{status:"体型が完成形",detail:"2年継続で体型は安定した理想の状態をキープ。健康的な自信が仕事にも好影響。"};
+return{status:"ライフスタイルに完全統合",detail:"3年以上継続で体型維持が苦でなくなり高いエネルギーレベルが常態化。仕事・副業のパフォーマンスを底上げし続ける。"}}
+function getMessage(m,s){
+const dt=getDate(m);
+if(m===0)return'スライダーを右に動かして未来を確認してください。<br>ルーティンのON/OFFで<span class="highlight">分岐するシナリオ</span>が変わります。';
+const cnt=Object.values(routines).filter(Boolean).length;
+if(cnt===0)return`ルーティンが全部OFFです。<span class="highlight">何も積み上がらない</span>と、${dt}でも今と同じ景色が続きます。`;
+if(m<=3)return`${dt}——まだ<span class="highlight">変化は見えにくい時期</span>です。でも今やってることは全部、データとして積み上がっています。`;
+if(m<=6)return s>=6?`${dt}——副本部長の目に、<span class="highlight">こつめさんの名前が残り始める頃</span>です。`:`${dt}——半年が経ちました。数字の整理と副本部長への訴求を強化すると、<span class="highlight">昇進スピードが一段上がります</span>。`;
+if(m<=12)return s>=7?`${dt}——課長昇進の結果が出る頃。引越の立て直し実績＋副本部長への数字報告が積み重なっていれば、<span class="highlight">評価者の頭の中にこつめさんがいる状態</span>になっているはず。`:`${dt}——1年分の記録が手元にある状態。このログが昇進面談での<span class="highlight">最強の証拠になります</span>。`;
+if(m<=24)return`${dt}——課長として2年目。部下を動かした実績・チームの数字・副業の芽が<span class="highlight">全部同時に育っている時期</span>です。`;
+return`${dt}——3年前、今日のこつめさんが始めたルーティンが<span class="highlight">全部ここに繋がっています</span>。部長、複線収入、理想の体型。全部「今日の1アクション」の積み重ねです。`}
+function updateMilestones(cur){
+const closest=MILESTONES.reduce((p,c)=>Math.abs(c.month-cur)<Math.abs(p.month-cur)?c:p);
+document.getElementById('milestoneList').innerHTML=MILESTONES.map(m=>{
+let cls=m.month<cur?'past':m.month===closest.month?'active':'future';
+return`<li class="milestone-item ${cls}"><span class="milestone-month">${m.label}</span><div><div class="milestone-title">${m.title}</div><div class="milestone-desc">${m.desc}</div></div></li>`}).join('')}
+function update(){
+const m=parseInt(document.getElementById('timeSlider').value);
+const s=getScore();
+document.getElementById('monthDisplay').textContent=m;
+document.getElementById('dateDisplay').textContent=getDate(m);
+const c=getCareer(m,s);document.getElementById('careerStatus').textContent=c.status;document.getElementById('careerDetail').textContent=c.detail;
+const mo=getMoney(m,s);document.getElementById('moneyStatus').textContent=mo.status;document.getElementById('moneyDetail').textContent=mo.detail;
+const b=getBody(m);document.getElementById('bodyStatus').textContent=b.status;document.getElementById('bodyDetail').textContent=b.detail;
+document.getElementById('messageBox').innerHTML=getMessage(m,s);
+updateMilestones(m)}
+document.getElementById('timeSlider').addEventListener('input',update);
+update();
+</script>
+</body>
+</html>
